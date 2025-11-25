@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { calculateSubnets, intToIp, ipToInt, isValidIp, cidrToMask } from './utils/ipHelpers';
 import { SubnetTable } from './components/SubnetTable';
 import { BitVisualizer } from './components/BitVisualizer';
@@ -11,53 +11,147 @@ import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 const AppContent: React.FC = () => {
   const { t } = useLanguage();
-  // State
+  // State - Inputs stored as strings to allow flexible editing (empty string, etc.)
   const [ip, setIp] = useState<string>('10.0.0.0');
-  const [mask, setMask] = useState<number>(8);
-  const [subnetCount, setSubnetCount] = useState<number>(4);
+  const [mask, setMask] = useState<string>('8');
+  const [subnetCount, setSubnetCount] = useState<string>('4');
+
+  // Refs for inputs to handle non-passive event listeners
+  const maskInputRef = useRef<HTMLInputElement>(null);
+  const subnetCountInputRef = useRef<HTMLInputElement>(null);
+
+  // Derived Safe Values for Calculation
+  const safeMask = useMemo(() => {
+    const val = parseInt(mask);
+    if (isNaN(val)) return 0;
+    return Math.min(32, Math.max(0, val));
+  }, [mask]);
+
+  const safeSubnetCount = useMemo(() => {
+    const val = parseInt(subnetCount);
+    if (isNaN(val)) return 1;
+    return Math.max(1, val);
+  }, [subnetCount]);
 
   // Derived State (Calculation)
   const result = useMemo(() => {
-    return calculateSubnets(ip, mask, subnetCount);
-  }, [ip, mask, subnetCount]);
+    return calculateSubnets(ip, safeMask, safeSubnetCount);
+  }, [ip, safeMask, safeSubnetCount]);
 
   // Derived State (Supernet Details)
   const supernetDetails = useMemo(() => {
-    if (!isValidIp(ip) || mask < 0 || mask > 32) return null;
+    if (!isValidIp(ip)) return null;
     
-    // Gateway (First IP) - Assuming user means standardized Network Address of the input block
     const inputInt = ipToInt(ip);
     
+    // Gateway: User requested "initial Network IP + 1"
+    const gatewayInt = (inputInt + 1) >>> 0;
+    const gateway = intToIp(gatewayInt);
+    
     // Supernet Broadcast
-    const shift = 32 - mask;
+    const shift = 32 - safeMask;
     let broadcastInt;
-    if (mask === 0) broadcastInt = 0xffffffff;
-    else if (mask === 32) broadcastInt = inputInt;
+    if (safeMask === 0) broadcastInt = 0xffffffff;
+    else if (safeMask === 32) broadcastInt = inputInt;
     else {
-        const networkInt = (inputInt >>> shift) << shift; // Zero out host bits
+        // Calculate broadcast based on standard network boundary for the bits N
+        // or relative to input if treating input as exact start?
+        // Standard subnet calculators mask the input to find the block start.
+        // However, this app treats the input IP as the specific start of the block per user request.
+        // But for broadcast calculation of the *Supernet*, standard masking usually applies to find the top of the range.
+        // Let's assume the user inputs a valid network address.
+        const networkInt = (inputInt >>> shift) << shift; 
         const wildcardMask = Math.pow(2, shift) - 1;
         broadcastInt = (networkInt | wildcardMask) >>> 0;
+        
+        // If the user's input IP is NOT aligned (e.g. 10.0.0.1/8), 
+        // usually we'd align it. But if we want to be strictly consistent with "Input is start",
+        // the broadcast would be inputInt | wildcardMask IF inputInt is aligned.
+        // If inputInt is 10.0.0.1, and mask is /8. Range is 10.0.0.0 - 10.255.255.255.
+        // Let's stick to standard broadcast calculation which is robust.
     }
 
-    const gateway = ip; 
     const broadcast = intToIp(broadcastInt);
-    const oldMaskStr = cidrToMask(mask);
+    const oldMaskStr = cidrToMask(safeMask);
     const newMaskStr = cidrToMask(result.newCidr);
 
     return { gateway, broadcast, oldMaskStr, newMaskStr };
-  }, [ip, mask, result.newCidr]);
+  }, [ip, safeMask, result.newCidr]);
+
+  // Effect to prevent native browser scrolling when using wheel on inputs
+  useEffect(() => {
+    const preventDefaultWheel = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+
+    const maskEl = maskInputRef.current;
+    const subnetEl = subnetCountInputRef.current;
+
+    // We must use non-passive listener to be able to preventDefault
+    if (maskEl) maskEl.addEventListener('wheel', preventDefaultWheel, { passive: false });
+    if (subnetEl) subnetEl.addEventListener('wheel', preventDefaultWheel, { passive: false });
+
+    return () => {
+      if (maskEl) maskEl.removeEventListener('wheel', preventDefaultWheel);
+      if (subnetEl) subnetEl.removeEventListener('wheel', preventDefaultWheel);
+    };
+  }, []);
 
   // Handlers
   const handleIpChange = (e: React.ChangeEvent<HTMLInputElement>) => setIp(e.target.value);
   
   const handleMaskChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value);
-    if (!isNaN(val)) setMask(Math.min(32, Math.max(0, val)));
+    const val = e.target.value;
+    // Allow empty string or digits only
+    if (val === '' || /^\d+$/.test(val)) {
+        setMask(val);
+    }
+  };
+
+  const handleMaskBlur = () => {
+    let val = parseInt(mask);
+    if (isNaN(val)) val = 0;
+    // Clamp to valid CIDR range on blur
+    if (val > 32) val = 32;
+    if (val < 0) val = 0;
+    setMask(val.toString());
   };
 
   const handleSubnetCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value);
-    if (!isNaN(val)) setSubnetCount(Math.max(1, val));
+    const val = e.target.value;
+    if (val === '' || /^\d+$/.test(val)) {
+        setSubnetCount(val);
+    }
+  };
+
+  const handleSubnetCountBlur = () => {
+    let val = parseInt(subnetCount);
+    if (isNaN(val) || val < 1) val = 1;
+    setSubnetCount(val.toString());
+  };
+
+  // Wheel Handler for numeric inputs
+  const handleInputWheel = (
+    e: React.WheelEvent<HTMLInputElement>,
+    currentValue: string,
+    setValue: (val: string) => void,
+    min: number,
+    max: number
+  ) => {
+    // Focus the element if it's not focused, to make user interaction feel natural
+    if (document.activeElement !== e.currentTarget) {
+      e.currentTarget.focus();
+    }
+    
+    const delta = e.deltaY > 0 ? -1 : 1;
+    let val = parseInt(currentValue);
+    if (isNaN(val)) val = min;
+    
+    let newVal = val + delta;
+    if (newVal > max) newVal = max;
+    if (newVal < min) newVal = min;
+    
+    setValue(newVal.toString());
   };
 
   const getTranslatedError = (error: string) => {
@@ -70,17 +164,23 @@ const AppContent: React.FC = () => {
   };
 
   const maskLogicData = {
-    n: mask,
+    n: safeMask,
     s: result.borrowedBits,
     h: 32 - result.newCidr
   };
+
+  const quickSetButtons = [
+    { label: 'A', value: 8, colorClass: 'rose' },
+    { label: 'B', value: 16, colorClass: 'amber' },
+    { label: 'C', value: 24, colorClass: 'emerald' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
       
       {/* Header */}
       <header className="max-w-7xl mx-auto mb-8 relative">
-        <div className="absolute top-0 right-0 flex gap-2">
+        <div className="flex justify-end gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 z-10">
           <ThemeSwitcher />
           <LanguageSwitcher />
         </div>
@@ -131,18 +231,59 @@ const AppContent: React.FC = () => {
               {/* Subnet Mask */}
               <div className="space-y-2">
                 <HelpTrigger topic="INPUT_MASK">
-                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 pointer-events-none">{t('config.subnet_mask')} (/{mask})</label>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 pointer-events-none">{t('config.subnet_mask')} (/{safeMask})</label>
                 </HelpTrigger>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 dark:text-slate-500 font-mono text-lg">/</span>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="32" 
-                    value={mask} 
-                    onChange={handleMaskChange}
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-slate-900 dark:text-white"
-                  />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-slate-400 dark:text-slate-500 font-mono text-lg">/</span>
+                    <input 
+                      ref={maskInputRef}
+                      type="text"
+                      inputMode="numeric"
+                      value={mask} 
+                      onChange={handleMaskChange}
+                      onBlur={handleMaskBlur}
+                      onWheel={(e) => handleInputWheel(e, mask, setMask, 0, 32)}
+                      placeholder="0-32"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  {/* Quick Set Buttons */}
+                  <div className="flex gap-1">
+                    {quickSetButtons.map((btn) => {
+                      const isActive = safeMask === btn.value;
+                      // Mapping colors for active/inactive states
+                      const colorStyles = {
+                        rose: isActive 
+                          ? 'bg-rose-500 border-rose-600 text-white' 
+                          : 'bg-white dark:bg-slate-800 border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20',
+                        amber: isActive 
+                          ? 'bg-amber-500 border-amber-600 text-white' 
+                          : 'bg-white dark:bg-slate-800 border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20',
+                        emerald: isActive 
+                          ? 'bg-emerald-500 border-emerald-600 text-white' 
+                          : 'bg-white dark:bg-slate-800 border-emerald-200 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
+                      };
+                      const currentStyle = colorStyles[btn.colorClass as keyof typeof colorStyles];
+
+                      return (
+                        <button
+                          key={btn.label}
+                          onClick={() => setMask(btn.value.toString())}
+                          className={`
+                            px-2 py-2 text-xs font-bold rounded border transition-all flex items-center gap-1
+                            ${currentStyle}
+                          `}
+                          title={`Set mask to /${btn.value} (Class ${btn.label})`}
+                        >
+                          <span>{btn.label}</span>
+                          <span className={`${isActive ? 'text-white/70' : 'opacity-60'} font-normal`}>
+                            (/{btn.value})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500">{t('config.subnet_mask_desc')}</p>
               </div>
@@ -153,14 +294,17 @@ const AppContent: React.FC = () => {
                   <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 pointer-events-none">{t('config.req_subnets')}</label>
                 </HelpTrigger>
                 <input 
-                  type="number" 
-                  min="1" 
+                  ref={subnetCountInputRef}
+                  type="text"
+                  inputMode="numeric"
                   value={subnetCount} 
                   onChange={handleSubnetCountChange}
+                  onBlur={handleSubnetCountBlur}
+                  onWheel={(e) => handleInputWheel(e, subnetCount, setSubnetCount, 1, 1000000)}
                   className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-slate-900 dark:text-white"
                 />
                 <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  <span>{t('config.target_subnets', { count: subnetCount })}</span>
+                  <span>{t('config.target_subnets', { count: safeSubnetCount })}</span>
                   <span>{t('config.req_bits', { count: result.borrowedBits })}</span>
                 </div>
               </div>
@@ -200,7 +344,7 @@ const AppContent: React.FC = () => {
           {/* Right: Visualizer */}
           <div className="lg:col-span-5">
             <BitVisualizer 
-              originalCidr={mask} 
+              originalCidr={safeMask} 
               borrowedBits={result.borrowedBits} 
             />
             

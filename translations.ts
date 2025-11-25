@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     app: {
@@ -81,8 +82,8 @@ export const translations = {
       mask_tooltip_s: "Subnet (S)",
       mask_tooltip_h: "Host (H)",
       details_gateway: {
-        title: "Gateway / Network Address",
-        content: "This is the starting IP address of your entire block. It acts as the identifier for the parent network before we split it."
+        title: "Gateway",
+        content: "This is the first usable IP address of your entire block (Network IP + 1). It is commonly assigned to the router interface."
       },
       details_broadcast: {
         title: "Supernet Broadcast",
@@ -179,8 +180,8 @@ export const translations = {
       mask_tooltip_s: "Подмрежа (S)",
       mask_tooltip_h: "Хост (H)",
       details_gateway: {
-        title: "Гейтуей / Мрежов Адрес",
-        content: "Това е началният IP адрес на целия блок. Той действа като идентификатор за родителската мрежа, преди да я разделим."
+        title: "Гейтуей",
+        content: "Това е първият използваем IP адрес на целия блок (Мрежов IP + 1). Често се присвоява на интерфейса на рутера."
       },
       details_broadcast: {
         title: "Супернет Броудкаст",
