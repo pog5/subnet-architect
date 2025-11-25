@@ -13,21 +13,21 @@ export const SubnetTable: React.FC<SubnetTableProps> = ({ rows, loading }) => {
   const { t } = useLanguage();
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">{t('table.loading')}</div>;
+    return <div className="p-8 text-center text-slate-500 dark:text-slate-400">{t('table.loading')}</div>;
   }
 
   if (rows.length === 0) {
     return (
-      <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400">
+      <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 dark:text-slate-500">
         {t('table.empty')}
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm bg-white">
+    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 transition-colors">
       <table className="w-full text-sm text-left">
-        <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+        <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
           <tr>
             <th className="px-3 md:px-6 py-3 font-medium whitespace-nowrap">
                 <HelpTrigger topic="ROW_INDEX" as="span">{t('table.headers.index')}</HelpTrigger>
@@ -49,39 +49,39 @@ export const SubnetTable: React.FC<SubnetTableProps> = ({ rows, loading }) => {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {rows.map((row) => (
-            <tr key={row.index} className="hover:bg-slate-50 transition-colors">
-              <td className="px-3 md:px-6 py-3 font-mono text-slate-500 align-top md:align-middle">
+            <tr key={row.index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-slate-700 dark:text-slate-300">
+              <td className="px-3 md:px-6 py-3 font-mono text-slate-500 dark:text-slate-400 align-top md:align-middle">
                 {row.index}
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono text-blue-600 font-semibold align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono text-blue-600 dark:text-blue-400 font-semibold align-middle">
                 <HelpTrigger topic="ROW_SUBNET_BITS" data={row} as="span">
                     {row.subnetBits}
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono font-medium text-slate-700 hidden sm:table-cell align-top md:align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono font-medium hidden sm:table-cell align-top md:align-middle">
                 <HelpTrigger topic="ROW_NETWORK_IP" as="div" className="inline-flex flex-col md:flex-row md:items-center">
                     <span>{row.networkIp}</span>
-                    <span className="text-slate-400 md:ml-2 text-xs md:text-sm">/{row.cidr}</span>
+                    <span className="text-slate-400 dark:text-slate-500 md:ml-2 text-xs md:text-sm">/{row.cidr}</span>
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono text-slate-600 hidden lg:table-cell align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono text-slate-600 dark:text-slate-400 hidden lg:table-cell align-middle">
                 <HelpTrigger topic="ROW_BROADCAST_IP" as="span">
                     {row.broadcastIp}
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono text-center text-slate-600 align-top md:align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono text-center text-slate-600 dark:text-slate-300 align-top md:align-middle">
                 <HelpTrigger topic="ROW_RANGE" data={row} as="div" className="flex flex-col xl:flex-row items-center justify-center gap-0.5 xl:gap-2">
                     <span>{row.firstUsable}</span>
-                    <span className="text-slate-300 text-[10px] xl:text-xs leading-none xl:leading-normal">
+                    <span className="text-slate-300 dark:text-slate-600 text-[10px] xl:text-xs leading-none xl:leading-normal">
                       <span className="hidden xl:inline">→</span>
                       <span className="xl:hidden">↓</span>
                     </span>
                     <span>{row.lastUsable}</span>
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 text-right font-medium text-emerald-600 hidden sm:table-cell align-middle">
+              <td className="px-3 md:px-6 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400 hidden sm:table-cell align-middle">
                  {row.hostCount.toLocaleString()}
               </td>
             </tr>

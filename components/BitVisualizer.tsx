@@ -23,9 +23,9 @@ export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borr
 
   const getColor = (type: BitType) => {
     switch (type) {
-      case BitType.NETWORK: return 'bg-green-300 border-green-400 text-green-900';
-      case BitType.SUBNET: return 'bg-sky-300 border-sky-400 text-sky-900';
-      case BitType.HOST: return 'bg-red-300 border-red-400 text-red-900';
+      case BitType.NETWORK: return 'bg-green-300 border-green-400 text-green-900 dark:bg-green-900/60 dark:border-green-800 dark:text-green-200';
+      case BitType.SUBNET: return 'bg-sky-300 border-sky-400 text-sky-900 dark:bg-sky-900/60 dark:border-sky-800 dark:text-sky-200';
+      case BitType.HOST: return 'bg-red-300 border-red-400 text-red-900 dark:bg-red-900/60 dark:border-red-800 dark:text-red-200';
     }
   };
 
@@ -39,25 +39,25 @@ export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borr
 
   return (
     <HelpTrigger topic="VIS_BITS" data={{ count: Math.pow(2, borrowedBits) }} className="block">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
         <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{t('vis.title')}</h3>
-            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-mono border border-slate-200">{t('vis.total_bits')}</span>
+            <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('vis.title')}</h3>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-700">{t('vis.total_bits')}</span>
         </div>
         
         {/* Legend */}
         <div className="flex gap-4 mb-4 text-xs">
             <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-300 rounded border border-green-400"></div>
-            <span>{t('vis.legend.net')}</span>
+            <div className="w-3 h-3 bg-green-300 dark:bg-green-900/60 rounded border border-green-400 dark:border-green-800"></div>
+            <span className="text-slate-600 dark:text-slate-400">{t('vis.legend.net')}</span>
             </div>
             <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-sky-300 rounded border border-sky-400"></div>
-            <span>{t('vis.legend.sub')}</span>
+            <div className="w-3 h-3 bg-sky-300 dark:bg-sky-900/60 rounded border border-sky-400 dark:border-sky-800"></div>
+            <span className="text-slate-600 dark:text-slate-400">{t('vis.legend.sub')}</span>
             </div>
             <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-300 rounded border border-red-400"></div>
-            <span>{t('vis.legend.host')}</span>
+            <div className="w-3 h-3 bg-red-300 dark:bg-red-900/60 rounded border border-red-400 dark:border-red-800"></div>
+            <span className="text-slate-600 dark:text-slate-400">{t('vis.legend.host')}</span>
             </div>
         </div>
 
@@ -66,8 +66,8 @@ export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borr
             <div className="grid grid-cols-8 gap-1 mb-2">
                 {bitValues.map((val) => (
                     <div key={val} className="flex flex-col items-center justify-end">
-                         <div className="text-[10px] text-slate-400 font-mono leading-none mb-0.5">2<sup>{Math.log2(val)}</sup></div>
-                         <div className="text-[10px] text-center text-slate-600 font-bold font-mono leading-none">{val}</div>
+                         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono leading-none mb-0.5">2<sup>{Math.log2(val)}</sup></div>
+                         <div className="text-[10px] text-center text-slate-600 dark:text-slate-400 font-bold font-mono leading-none">{val}</div>
                     </div>
                 ))}
             </div>
