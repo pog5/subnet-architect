@@ -1,0 +1,5 @@
+{
+  "name": "Subnet Architect",
+  "description": "A visual IPv4 subnet calculator that helps network engineers split allocations into smaller sub-networks with real-time bit visualization.",
+  "requestFramePermissions": []
+}
