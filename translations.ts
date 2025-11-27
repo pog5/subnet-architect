@@ -1,43 +1,46 @@
-
-
 export const translations = {
   en: {
     app: {
-      title: "IPv4 Subnet Architect",
-      description: "Visualize and calculate sub-network partitions with real-time bit analysis.",
+      title: "Subnet Architect",
+      ipv4: "IPv4",
+      ipv6: "IPv6",
+      description: "Visualize and calculate network partitions with real-time bit analysis.",
       tip: "Tip: Click on any element (Cursor: ?) to learn how it works!",
     },
     config: {
       title: "Configuration",
       network_addr: "Network Address",
-      network_addr_desc: "The starting IPv4 address.",
-      subnet_mask: "Original Subnet Mask",
-      subnet_mask_desc: "Current CIDR notation (0-32).",
+      network_addr_desc: "The starting IP address.",
+      subnet_mask: "Original Prefix / Mask",
+      subnet_mask_desc: "Current CIDR notation (0-{max}).",
       req_subnets: "Required Sub-networks",
       target_subnets: "Target: {count} subnets",
       req_bits: "Required bits: {count}",
       details: {
-        gateway: "Gateway",
-        broadcast: "Broadcast",
-        old_mask: "(Old) Subnet Mask",
-        new_mask: "(New) Subnet Mask"
+        gateway: "Gateway / First IP",
+        broadcast: "Broadcast / Last IP",
+        old_mask_v4: "(Old) Subnet Mask",
+        new_mask_v4: "(New) Subnet Mask",
+        old_mask_v6: "(Old) Prefix",
+        new_mask_v6: "(New) Prefix"
       }
     },
     vis: {
       title: "Bit Allocation",
-      total_bits: "32 Bits Total",
+      total_bits: "{bits} Bits Total",
       legend: {
         net: "Network",
         sub: "Subnet",
         host: "Host"
       },
       octets: {
-        header: "Octet"
+        header: "Segment"
       }
     },
     stats: {
-      new_mask: "New Mask",
-      hosts_per_subnet: "Hosts / Subnet"
+      new_mask: "New Prefix",
+      hosts_per_subnet: "Hosts / Subnet",
+      new_prefix_help: "New Prefix Calculation"
     },
     table: {
       title: "Allocation Table",
@@ -48,18 +51,19 @@ export const translations = {
         index: "#",
         subnet_bits: "Subnet Bits",
         network_ip: "Network IP",
-        broadcast_ip: "Broadcast IP",
-        range: "Usable Host Range",
+        broadcast_ip: "End IP",
+        range: "Range",
         hosts: "Hosts"
       }
     },
     errors: {
       invalid_ip: "Invalid IP Address",
-      invalid_cidr: "Invalid CIDR",
+      invalid_cidr: "Invalid CIDR/Prefix",
       min_subnet: "Must request at least 1 subnet",
-      limit_display: "Display limited to first 2048 subnets for performance."
+      limit_display: "Display limited for performance."
     },
     help: {
+      // ... existing help keys ...
       first_subnet: "First Subnet (Index 0)",
       start_counting: "We start counting at 0.",
       previous: "Previous",
@@ -72,7 +76,7 @@ export const translations = {
       first_usable: "First Usable",
       last_usable: "Last Usable",
       network_ip_math: "Network IP + 1",
-      broadcast_ip_math: "Broadcast IP - 1",
+      broadcast_ip_math: "End IP - 1",
       close: "Close",
       mask_legend_masked: "1 (Masked)",
       mask_legend_unmasked: "0 (Unmasked)",
@@ -83,59 +87,64 @@ export const translations = {
       mask_tooltip_h: "Host (H)",
       details_gateway: {
         title: "Gateway",
-        content: "This is the first usable IP address of your entire block (Network IP + 1). It is commonly assigned to the router interface."
+        content: "This is the first IP address of the block (Network + 1). In IPv4 it is commonly assigned to the router. In IPv6, the first address (0000...) is Subnet-Router Anycast, so the first usable host is usually +1."
       },
       details_broadcast: {
-        title: "Supernet Broadcast",
-        content: "This is the last IP of your entire block. It is calculated by keeping the Network bits (N) as is, and setting all Subnet (S) and Host (H) bits to 1."
+        title: "Broadcast / End IP",
+        content: "The last IP of the block. In IPv4 this is the Broadcast address. In IPv6, there is no broadcast, but this represents the end of the calculated range."
       },
       details_old_mask: {
-        title: "Old Subnet Mask",
-        content: "This mask defines your original network size. The 'S' (Subnet) bits are currently 0 because they haven't been borrowed yet."
+        title: "Old Prefix",
+        content: "This prefix defines your original network size. The 'S' (Subnet) bits are currently 0."
       },
       details_new_mask: {
-        title: "New Subnet Mask",
-        content: "This mask defines the size of your new, smaller subnets. The 'S' (Subnet) bits are now set to 1, effectively becoming part of the network portion."
+        title: "New Prefix",
+        content: "This prefix defines the size of your new, smaller subnets. The 'S' (Subnet) bits are now part of the network identifier."
       }
     }
   },
   bg: {
     app: {
-      title: "IPv4 Подмрежов Архитект",
+      title: "Подмрежов Архитект",
+      ipv4: "IPv4",
+      ipv6: "IPv6",
       description: "Визуализирайте и изчислявайте разделянето на подмрежи с анализ на битовете в реално време.",
       tip: "Съвет: Кликнете върху всеки елемент (Курсор: ?), за да научите как работи!",
     },
     config: {
       title: "Конфигурация",
       network_addr: "Мрежов Адрес",
-      network_addr_desc: "Началният IPv4 адрес.",
-      subnet_mask: "Оригинална Подмрежова Маска",
-      subnet_mask_desc: "Текуща CIDR нотация (0-32).",
+      network_addr_desc: "Началният IP адрес.",
+      subnet_mask: "Оригинален Префикс",
+      subnet_mask_desc: "Текуща CIDR нотация (0-{max}).",
       req_subnets: "Изисквани Подмрежи",
       target_subnets: "Цел: {count} подмрежи",
       req_bits: "Изисквани битове: {count}",
       details: {
-        gateway: "Гейтуей",
-        broadcast: "Броудкаст",
-        old_mask: "(Стара) Маска",
-        new_mask: "(Нова) Маска"
+        gateway: "Гейтуей / Първи",
+        broadcast: "Броудкаст / Последен",
+        old_mask_v6: "(Стар) Префикс",
+        new_mask_v6: "(Нов) Префикс",
+        old_mask_v4: "(Стара) Маска",
+        new_mask_v4: "(Нова) Маска"
       }
     },
     vis: {
       title: "Разпределение на Битове",
-      total_bits: "32 Бита Общо",
+      total_bits: "{bits} Бита Общо",
       legend: {
         net: "Мрежа",
         sub: "Подмрежа",
         host: "Хост"
       },
       octets: {
-        header: "Октет"
+        header: "Сегмент"
       }
     },
     stats: {
-      new_mask: "Нова Маска",
-      hosts_per_subnet: "Хостове / Подмрежа"
+      new_mask: "Нов Префикс",
+      hosts_per_subnet: "Хостове / Подмрежа",
+      new_prefix_help: "Изчисляване на Нов Префикс"
     },
     table: {
       title: "Таблица за Разпределение",
@@ -146,18 +155,19 @@ export const translations = {
         index: "#",
         subnet_bits: "Подмрежови Битове",
         network_ip: "Мрежов IP",
-        broadcast_ip: "Броудкаст IP",
-        range: "Използваем Хост Обхват",
+        broadcast_ip: "Краен IP",
+        range: "Обхват",
         hosts: "Хостове"
       }
     },
     errors: {
       invalid_ip: "Невалиден IP адрес",
-      invalid_cidr: "Невалиден CIDR",
+      invalid_cidr: "Невалиден CIDR/Префикс",
       min_subnet: "Трябва да заявите поне 1 подмрежа",
-      limit_display: "Показването е ограничено до първите 2048 подмрежи за производителност."
+      limit_display: "Показването е ограничено за производителност."
     },
     help: {
+      // ... same help keys ...
       first_subnet: "Първа подмрежа (Индекс 0)",
       start_counting: "Започваме броенето от 0.",
       previous: "Предишен",
@@ -170,7 +180,7 @@ export const translations = {
       first_usable: "Първи използваем",
       last_usable: "Последен използваем",
       network_ip_math: "Мрежов IP + 1",
-      broadcast_ip_math: "Броудкаст IP - 1",
+      broadcast_ip_math: "Краен IP - 1",
       close: "Затвори",
       mask_legend_masked: "1 (Маскиран)",
       mask_legend_unmasked: "0 (Немаскиран)",
@@ -181,19 +191,19 @@ export const translations = {
       mask_tooltip_h: "Хост (H)",
       details_gateway: {
         title: "Гейтуей",
-        content: "Това е първият използваем IP адрес на целия блок (Мрежов IP + 1). Често се присвоява на интерфейса на рутера."
+        content: "Това е първият IP адрес на блока (Мрежа + 1). В IPv4 често е рутера. В IPv6 адресът с всички нули е Subnet-Router Anycast, затова първият хост обикновено е +1."
       },
       details_broadcast: {
-        title: "Супернет Броудкаст",
-        content: "Това е последният IP на целия блок. Изчислява се, като Мрежовите битове (N) се запазват, а всички Подмрежови (S) и Хост (H) битове се задават на 1."
+        title: "Броудкаст / Краен IP",
+        content: "Последният IP на блока. В IPv4 това е Броудкаст адресът. В IPv6 няма броудкаст, но това представлява края на изчисления обхват."
       },
       details_old_mask: {
-        title: "Стара Подмрежова Маска",
-        content: "Тази маска определя размера на оригиналната мрежа. Битовeте 'S' (Подмрежа) в момента са 0, защото още не са 'заети'."
+        title: "Стар Префикс",
+        content: "Този префикс определя размера на оригиналната мрежа. Битовeте 'S' (Подмрежа) в момента са 0."
       },
       details_new_mask: {
-        title: "Нова Подмрежова Маска",
-        content: "Тази маска определя размера на новите, по-малки подмрежи. Битовете 'S' (Подмрежа) вече са 1, ставайки част от мрежовия идентификатор."
+        title: "Нов Префикс",
+        content: "Този префикс определя размера на новите, по-малки подмрежи. Битовете 'S' (Подмрежа) вече са част от мрежовия идентификатор."
       }
     }
   }

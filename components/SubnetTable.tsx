@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SubnetRow } from '../types';
 import { HelpTrigger } from './HelpSystem';
@@ -45,7 +44,7 @@ export const SubnetTable: React.FC<SubnetTableProps> = ({ rows, loading }) => {
                 <HelpTrigger topic="ROW_RANGE" data={{ networkIp: "x.x.x.0", firstUsable: "x.x.x.1", lastUsable: "x.x.x.254", broadcastIp: "x.x.x.255" }} as="span">{t('table.headers.range')}</HelpTrigger>
             </th>
             <th className="px-3 md:px-6 py-3 font-medium text-right hidden sm:table-cell whitespace-nowrap">
-                <HelpTrigger topic="ROW_HOSTS" data={{ hostBits: 'H', count: '2^H - 2' }} as="span">{t('table.headers.hosts')}</HelpTrigger>
+                <HelpTrigger topic="ROW_HOSTS" data={{ hostBits: 'H', count: '2^H' }} as="span">{t('table.headers.hosts')}</HelpTrigger>
             </th>
           </tr>
         </thead>
@@ -60,29 +59,29 @@ export const SubnetTable: React.FC<SubnetTableProps> = ({ rows, loading }) => {
                     {row.subnetBits}
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono font-medium hidden sm:table-cell align-top md:align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono font-medium hidden sm:table-cell align-top md:align-middle break-all max-w-[200px] xl:max-w-none">
                 <HelpTrigger topic="ROW_NETWORK_IP" as="div" className="inline-flex flex-col md:flex-row md:items-center">
                     <span>{row.networkIp}</span>
                     <span className="text-slate-400 dark:text-slate-500 md:ml-2 text-xs md:text-sm">/{row.cidr}</span>
                 </HelpTrigger>
               </td>
-              <td className="px-3 md:px-6 py-3 font-mono text-slate-600 dark:text-slate-400 hidden lg:table-cell align-middle">
+              <td className="px-3 md:px-6 py-3 font-mono text-slate-600 dark:text-slate-400 hidden lg:table-cell align-middle break-all max-w-[200px] xl:max-w-none">
                 <HelpTrigger topic="ROW_BROADCAST_IP" as="span">
                     {row.broadcastIp}
                 </HelpTrigger>
               </td>
               <td className="px-3 md:px-6 py-3 font-mono text-center text-slate-600 dark:text-slate-300 align-top md:align-middle">
                 <HelpTrigger topic="ROW_RANGE" data={row} as="div" className="flex flex-col xl:flex-row items-center justify-center gap-0.5 xl:gap-2">
-                    <span>{row.firstUsable}</span>
+                    <span className="break-all max-w-[150px]">{row.firstUsable}</span>
                     <span className="text-slate-300 dark:text-slate-600 text-[10px] xl:text-xs leading-none xl:leading-normal">
                       <span className="hidden xl:inline">→</span>
                       <span className="xl:hidden">↓</span>
                     </span>
-                    <span>{row.lastUsable}</span>
+                    <span className="break-all max-w-[150px]">{row.lastUsable}</span>
                 </HelpTrigger>
               </td>
               <td className="px-3 md:px-6 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400 hidden sm:table-cell align-middle">
-                 {row.hostCount.toLocaleString()}
+                 {typeof row.hostCount === 'number' ? row.hostCount.toLocaleString() : row.hostCount}
               </td>
             </tr>
           ))}

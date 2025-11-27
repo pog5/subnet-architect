@@ -1,18 +1,28 @@
-
 import React from 'react';
-import { BitType } from '../types';
+import { BitType, IpVersion } from '../types';
 import { HelpTrigger } from './HelpSystem';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface BitVisualizerProps {
   originalCidr: number;
   borrowedBits: number;
+  version: IpVersion;
 }
 
-export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borrowedBits }) => {
+export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borrowedBits, version }) => {
   const { t } = useLanguage();
-  const totalBits = 32;
-  const bitValues = [128, 64, 32, 16, 8, 4, 2, 1];
+  
+  const isV4 = version === 'v4';
+  const totalBits = isV4 ? 32 : 128;
+  const bitsPerSegment = isV4 ? 8 : 16;
+  const segments = isV4 ? 4 : 8;
+  // Fix: grid-cols-16 does not exist in default Tailwind. Using arbitrary value.
+  const gridCols = isV4 ? 'grid-cols-8' : 'grid-cols-[repeat(16,minmax(0,1fr))]';
+  
+  // Headers for bit values
+  const bitValues = isV4 
+    ? [128, 64, 32, 16, 8, 4, 2, 1]
+    : Array.from({length: 16}, (_, i) => Math.pow(2, 15 - i)); // 32768...1
 
   // Helper to determine bit type
   const getBitType = (absoluteIndex: number): BitType => {
@@ -39,10 +49,10 @@ export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borr
 
   return (
     <HelpTrigger topic="VIS_BITS" data={{ count: Math.pow(2, borrowedBits) }} className="block">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors overflow-hidden">
         <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('vis.title')}</h3>
-            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-700">{t('vis.total_bits')}</span>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-700">{t('vis.total_bits', { bits: totalBits })}</span>
         </div>
         
         {/* Legend */}
@@ -61,40 +71,38 @@ export const BitVisualizer: React.FC<BitVisualizerProps> = ({ originalCidr, borr
             </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 overflow-x-auto pb-2">
             {/* Header Row */}
-            <div className="grid grid-cols-8 gap-1 mb-2">
+            <div className={`grid ${gridCols} gap-1 mb-2 min-w-max`}>
                 {bitValues.map((val) => (
-                    <div key={val} className="flex flex-col items-center justify-end">
-                         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono leading-none mb-0.5">2<sup>{Math.log2(val)}</sup></div>
-                         <div className="text-[10px] text-center text-slate-600 dark:text-slate-400 font-bold font-mono leading-none">{val}</div>
+                    <div key={val} className="flex flex-col items-center justify-end w-5 sm:w-8">
+                         <div className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-mono leading-none mb-0.5">2<sup>{Math.log2(val)}</sup></div>
+                         {/* Show value only if small enough or if plenty space? Hiding specific numbers for IPv6 might be cleaner, but user asked for logic transform. */}
+                         <div className="text-[8px] sm:text-[10px] text-center text-slate-600 dark:text-slate-400 font-bold font-mono leading-none hidden sm:block">{val}</div>
                     </div>
                 ))}
             </div>
 
-            {/* 4 Octets */}
-            {[0, 1, 2, 3].map((octetIndex) => {
+            {/* Segments */}
+            {Array.from({length: segments}).map((_, segmentIndex) => {
                 return (
-                    <div key={octetIndex} className="grid grid-cols-8 gap-1 items-center">
-                        {bitValues.map((val, bitIndex) => {
-                        const absoluteIndex = octetIndex * 8 + bitIndex;
-                        const type = getBitType(absoluteIndex);
-                        
-                        // Don't render bits beyond 32 (shouldn't happen with fixed loops but good practice)
-                        if (absoluteIndex >= totalBits) return null;
-
-                        return (
-                            <div
-                            key={bitIndex}
-                            className={`
-                                h-8 flex items-center justify-center rounded text-xs font-bold border
-                                transition-colors duration-300
-                                ${getColor(type)}
-                            `}
-                            >
-                            {getLabel(type)}
-                            </div>
-                        );
+                    <div key={segmentIndex} className={`grid ${gridCols} gap-1 items-center min-w-max`}>
+                        {Array.from({length: bitsPerSegment}).map((_, bitIndex) => {
+                            const absoluteIndex = segmentIndex * bitsPerSegment + bitIndex;
+                            const type = getBitType(absoluteIndex);
+                            
+                            return (
+                                <div
+                                key={bitIndex}
+                                className={`
+                                    w-5 sm:w-8 h-8 flex items-center justify-center rounded text-[10px] sm:text-xs font-bold border
+                                    transition-colors duration-300
+                                    ${getColor(type)}
+                                `}
+                                >
+                                {getLabel(type)}
+                                </div>
+                            );
                         })}
                     </div>
                 );

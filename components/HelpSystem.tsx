@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -114,7 +113,15 @@ const HostRangeVisual: React.FC<{ net: string, first: string, last: string, broa
 // Component to visualize Mask bits (N vs S vs H)
 const MaskLogicVisual: React.FC<{ n: number, s: number, h: number, sActive: boolean }> = ({ n, s, h, sActive }) => {
   const { t } = useLanguage();
-  const bitValues = [128, 64, 32, 16, 8, 4, 2, 1];
+  
+  const totalBits = n + s + h;
+  const isV6 = totalBits > 32;
+  const bitsPerRow = isV6 ? 16 : 8;
+  const numRows = totalBits / bitsPerRow;
+  
+  const bitValues = isV6 
+    ? Array.from({length: 16}, (_, i) => Math.pow(2, 15 - i))
+    : [128, 64, 32, 16, 8, 4, 2, 1];
   
   const getBitState = (index: number) => {
     if (index < n) return { type: 'N', val: 1 };
@@ -144,6 +151,17 @@ const MaskLogicVisual: React.FC<{ n: number, s: number, h: number, sActive: bool
     return t('help.mask_tooltip_h');
   };
 
+  const boxClass = isV6 
+    ? "w-4 h-5 text-[9px] sm:w-5 sm:h-6 sm:text-[10px]" 
+    : "w-8 h-8 text-sm";
+    
+  const gapClass = isV6 ? "gap-0.5" : "gap-1";
+
+  const formatRowValue = (val: number) => {
+    if (isV6) return val.toString(16).toUpperCase().padStart(4, '0');
+    return val.toString();
+  };
+
   return (
     <div className="my-4">
       {/* Legend */}
@@ -159,29 +177,30 @@ const MaskLogicVisual: React.FC<{ n: number, s: number, h: number, sActive: bool
       </div>
       
       {/* Bit Values Header */}
-      <div className="flex gap-1 justify-center mb-1 pr-10">
+      <div className={`flex ${gapClass} justify-center mb-1 pr-10`}>
         {bitValues.map((val) => (
-            <div key={val} className="w-8 flex flex-col items-center">
+            <div key={val} className={`${isV6 ? 'w-4 sm:w-5' : 'w-8'} flex flex-col items-center`}>
                  <div className="text-[9px] text-slate-400 dark:text-slate-500 leading-none">2<sup>{Math.log2(val)}</sup></div>
-                 <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold leading-none">{val}</div>
+                 {/* Only show decimal value below for IPv4 or if there's enough space */}
+                 {!isV6 && <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold leading-none">{val}</div>}
             </div>
         ))}
       </div>
 
       {/* Grid */}
-      <div className="space-y-2">
-         {[0, 1, 2, 3].map(octet => {
+      <div className="space-y-1">
+         {Array.from({length: numRows}).map((_, rowIndex) => {
             let rowValue = 0;
             return (
-                <div key={octet} className="flex gap-1 justify-center items-center">
-                    {Array.from({length: 8}).map((_, bit) => {
-                        const absIndex = octet * 8 + bit;
+                <div key={rowIndex} className={`flex ${gapClass} justify-center items-center`}>
+                    {Array.from({length: bitsPerRow}).map((_, bit) => {
+                        const absIndex = rowIndex * bitsPerRow + bit;
                         const { type, val } = getBitState(absIndex);
                         if (val === 1) rowValue += bitValues[bit];
                         
                         return (
                             <div key={bit} className={`
-                                w-8 h-8 rounded flex items-center justify-center font-mono font-bold text-sm border shadow-sm
+                                ${boxClass} rounded flex items-center justify-center font-mono font-bold border shadow-sm
                                 ${getColor(type, val)}
                                 relative group cursor-default transition-all hover:scale-110 z-0 hover:z-10
                             `}>
@@ -195,8 +214,8 @@ const MaskLogicVisual: React.FC<{ n: number, s: number, h: number, sActive: bool
                         )
                     })}
                     {/* Row Value */}
-                    <div className="w-8 ml-2 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 text-right">
-                        {rowValue}
+                    <div className="w-10 ml-1 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 text-right">
+                        {formatRowValue(rowValue)}
                     </div>
                 </div>
             )
@@ -213,13 +232,56 @@ const MaskLogicVisual: React.FC<{ n: number, s: number, h: number, sActive: bool
 };
 
 const getHelpContent = (topic: string, data: any, language: string, t: any) => {
-  // Logic remains mostly the same, ensuring components used inside return values are also aware of dark mode
-  // The SubnetBitsVisual and HostRangeVisual components defined above handle their own styling.
+  const isBg = language === 'bg';
   
-  // Re-invoking the logic from original file but with the updated components is handled automatically
-  // since the components are defined in scope.
-  
-  if (language === 'bg') {
+  // Reusable dynamic content helpers (execute only when data is needed)
+  const renderNewPrefixContent = () => (
+      <div>
+         <p className="mb-3">{isBg ? 'Новият префикс се получава чрез сумиране на оригиналните мрежови битове и новите подмрежови битове.' : 'The new prefix is derived by summing the original network bits and the new borrowed subnet bits.'}</p>
+         <div className="flex items-center justify-center gap-2 text-lg font-bold font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
+             <div className="flex flex-col items-center">
+                 <span className="text-green-600 dark:text-green-400">{data.n}</span>
+                 <span className="text-[10px] text-slate-400 font-normal uppercase">{t('help.mask_tooltip_n')}</span>
+             </div>
+             <span className="text-slate-400">+</span>
+             <div className="flex flex-col items-center">
+                 <span className="text-sky-600 dark:text-sky-400">{data.s}</span>
+                 <span className="text-[10px] text-slate-400 font-normal uppercase">{t('help.mask_tooltip_s')}</span>
+             </div>
+             <span className="text-slate-400">=</span>
+             <div className="flex flex-col items-center">
+                 <span className="text-indigo-600 dark:text-indigo-400">{data.n + data.s}</span>
+                 <span className="text-[10px] text-slate-400 font-normal uppercase">{t('stats.new_mask')}</span>
+             </div>
+         </div>
+      </div>
+  );
+
+  const renderHostsContent = () => (
+      <div>
+        <p>{isBg ? 'Общият брой устройства, които могат да се поберат в тази подмрежа.' : 'The total number of devices that can fit in this subnet.'}</p>
+        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded font-mono mt-2 text-center">
+            2<sup>{data.hostBits}</sup> - 2 = <strong>{data.count}</strong>
+        </div>
+        {/* IPv6 Full Count Display */}
+        {data.fullCount && (
+            <div className="mt-2 text-center">
+                <div className="text-[10px] text-slate-400 uppercase mb-1">{isBg ? 'Точен брой' : 'Exact Count'}</div>
+                <div className="bg-slate-200 dark:bg-slate-900 p-2 rounded text-xs font-mono overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                    {data.fullCount}
+                </div>
+            </div>
+        )}
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {isBg 
+             ? `Където ${data.hostBits} е броят на оставащите Хост (Червени) битове.\n"- 2" отчита запазените Мрежов и Броудкаст адреси.`
+             : `Where ${data.hostBits} is the number of Host (Red) bits remaining.\nThe "- 2" accounts for the reserved Network and Broadcast addresses.`
+            }
+        </p>
+    </div>
+  );
+
+  if (isBg) {
     switch (topic) {
         case 'INPUT_IP':
           return {
@@ -260,7 +322,7 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
             title: 'Визуализация на Битове',
             content: (
                 <div>
-                    <p>Тази решетка показва 32-та бита, които съставят един IPv4 адрес. Всеки ред е "октет" (8 бита).</p>
+                    <p>Тази решетка показва битовете, които съставят IP адреса.</p>
                     <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
                         <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-300 dark:bg-green-700 rounded border border-green-400"></div> <span><strong>Мрежови битове:</strong> Фиксирани от вашия оригинален IP/Маска. Не можем да ги пипаме.</span></div>
                         <div className="flex items-center gap-2"><div className="w-4 h-4 bg-sky-300 dark:bg-sky-700 rounded border border-sky-400"></div> <span><strong>Подмрежови битове:</strong> Битовете, които "заехме", за да създадем {data?.count} подмрежи, които поискахте.</span></div>
@@ -326,18 +388,7 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
         case 'ROW_HOSTS':
             return {
                 title: 'Капацитет за Използваеми Хостове',
-                content: (
-                    <div>
-                        <p>Общият брой устройства, които могат да се поберат в тази подмрежа.</p>
-                        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded font-mono mt-2 text-center">
-                            2<sup>{data.hostBits}</sup> - 2 = <strong>{data.count}</strong>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            Където {data.hostBits} е броят на оставащите Хост (Червени) битове.<br/>
-                            "- 2" отчита запазените Мрежов и Броудкаст адреси.
-                        </p>
-                    </div>
-                )
+                content: renderHostsContent()
             };
         case 'DETAILS_GATEWAY':
             return t('help.details_gateway');
@@ -362,6 +413,11 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
                    <MaskLogicVisual n={data.n} s={data.s} h={data.h} sActive={true} />
                 </div>
               )
+            }
+        case 'STATS_NEW_PREFIX':
+            return {
+                title: t('stats.new_prefix_help'),
+                content: renderNewPrefixContent()
             }
         default:
           return { title: 'Помощ', content: 'Няма налични детайли.' };
@@ -408,7 +464,7 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
             title: 'Bit Visualization',
             content: (
                 <div>
-                    <p>This grid shows the 32 bits that make up an IPv4 address. Each row is an "octet" (8 bits).</p>
+                    <p>This grid shows the bits that make up the IP address.</p>
                     <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
                         <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-300 dark:bg-green-700 rounded border border-green-400"></div> <span><strong>Network Bits:</strong> Fixed by your original IP/Mask. We cannot touch these.</span></div>
                         <div className="flex items-center gap-2"><div className="w-4 h-4 bg-sky-300 dark:bg-sky-700 rounded border border-sky-400"></div> <span><strong>Subnet Bits:</strong> The bits we "borrowed" to create the {data?.count} subnets you requested.</span></div>
@@ -474,18 +530,7 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
         case 'ROW_HOSTS':
             return {
                 title: 'Usable Hosts Capacity',
-                content: (
-                    <div>
-                        <p>The total number of devices that can fit in this subnet.</p>
-                        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded font-mono mt-2 text-center">
-                            2<sup>{data.hostBits}</sup> - 2 = <strong>{data.count}</strong>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            Where {data.hostBits} is the number of Host (Red) bits remaining.<br/>
-                            The "- 2" accounts for the reserved Network and Broadcast addresses.
-                        </p>
-                    </div>
-                )
+                content: renderHostsContent()
             };
         case 'DETAILS_GATEWAY':
             return t('help.details_gateway');
@@ -511,14 +556,19 @@ const getHelpContent = (topic: string, data: any, language: string, t: any) => {
                 </div>
               )
             }
+        case 'STATS_NEW_PREFIX':
+            return {
+                title: t('stats.new_prefix_help'),
+                content: renderNewPrefixContent()
+            }
         default:
           return { title: 'Help', content: 'No details available.' };
     }
   }
 };
 
-// --- Context & Provider ---
-// (No changes to Context/Provider logic needed, just export valid HelpSystem)
+// ... (Rest of the file remains unchanged)
+// [HelpContext, useHelp, HelpModal, HelpTrigger, HelpProvider implementation]
 
 interface HelpContextType {
   openHelp: (topic: string, data?: any) => void;
@@ -545,11 +595,16 @@ export const HelpModal: React.FC = () => {
   if (!isOpen || !topic) return null;
 
   const { title, content } = getHelpContent(topic, data, language, t);
+  
+  // Dynamic width for IPv6 visualization to fit 16-bit rows comfortably
+  const maxWidthClass = (topic === 'DETAILS_OLD_MASK' || topic === 'DETAILS_NEW_MASK') && data && (data.n + data.s + data.h > 32)
+    ? 'max-w-xl'
+    : 'max-w-md';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-fade-in">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeHelp}></div>
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-slide-up text-slate-700 dark:text-slate-300">
+      <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full ${maxWidthClass} relative z-10 overflow-hidden animate-slide-up text-slate-700 dark:text-slate-300 transition-all`}>
         <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center">
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
             <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
